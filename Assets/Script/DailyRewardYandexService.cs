@@ -42,10 +42,13 @@ namespace ExampleYGDateTime
                     case UnityWebRequest.Result.Success:
                         string dateString = webRequest.GetResponseHeader("date");
                         Debug.Log($"[DailyRewardYandexService] => Yandex server time -> {dateString}");
-                        DateTimeOffset date = DateTimeOffset.ParseExact(dateString, "ddd, dd MMM yyyy HH:mm:ss 'GMT'",
-                            CultureInfo.InvariantCulture);
+                        DateTimeOffset date = DateTimeOffset.ParseExact(dateString, "ddd, dd MMM yyyy HH:mm:ss 'GMT'", 
+                            CultureInfo.InvariantCulture, 
+                            DateTimeStyles.AssumeUniversal);
+                        Debug.Log($"[DailyRewardYandexService] => Server time in date -> {date}");
                         serverTime = (int)date.ToUnixTimeSeconds();
                         Debug.Log($"[DailyRewardYandexService] => Server time in second -> {serverTime}");
+
                         isCompleteLoaded = true;
                         isLoaded = true;
                         break;

@@ -40,7 +40,11 @@ namespace ExampleYGDateTime
             }
         }
 
-        public bool IsActiveTimer => isActiveTimer;
+        public bool IsActiveTimer
+        {
+            get => isActiveTimer;
+            set => isActiveTimer = value;
+        }
 
         public async UniTaskVoid GetDateTimeServerYandex()
         {

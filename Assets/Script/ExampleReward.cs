@@ -13,7 +13,7 @@ namespace ExampleYGDateTime
         [SerializeField] private TextMeshProUGUI timerText;
         
         [SerializeField] private TextMeshProUGUI coinCountText_Example;
-        
+        [SerializeField] private Button resetSaveButton;
         private DailyRewardService rewardService;
         private bool isActiveTimer;
 
@@ -30,15 +30,17 @@ namespace ExampleYGDateTime
         
         private void Start()
         {
-            coinCountText_Example.text = YandexGame.savesData.CoinCount.ToString(); rewardService.onCompletedInitTimer += OnCompletedInitializeReward;
+            coinCountText_Example.text = YandexGame.savesData.CoinCount.ToString();
+            rewardService.onCompletedInitTimer += OnCompletedInitializeReward;
             rewardService.InitializeTimerRewardReceived().Forget();
             addCoinsButton.onClick.AddListener(AddCoinsWatchingAdsOnClick);
+            resetSaveButton.onClick.AddListener(OnClickResetSaveButton);
             YandexGame.RewardVideoEvent += RewardedViewingAds;
         }
 
         private void FixedUpdate()
         {
-            if (!rewardService.IsActiveTimer || isActiveTimer) return;
+            if (!rewardService.IsActiveTimer) return;
 
             if (!timerContent.activeSelf)
             {
@@ -51,9 +53,9 @@ namespace ExampleYGDateTime
             if (!rewardService.CheckTimerRewardEnded()) return;
             Debug.Log($"[ExampleReward] CheckTimerRewardEnded -> {rewardService.CheckTimerRewardEnded()}");
 
-            isActiveTimer = true;
+            addCoinsButton.gameObject.SetActive(true);
             timerContent.SetActive(false);
-
+            rewardService.IsActiveTimer = false;
             Debug.Log("[ExampleReward] End timer");
         }
 
@@ -61,6 +63,7 @@ namespace ExampleYGDateTime
         {
             rewardService.onCompletedInitTimer -= OnCompletedInitializeReward;
             addCoinsButton.onClick.RemoveListener(AddCoinsWatchingAdsOnClick);
+            resetSaveButton.onClick.RemoveListener(OnClickResetSaveButton);
             YandexGame.RewardVideoEvent -= RewardedViewingAds;
         }
 
@@ -99,6 +102,15 @@ namespace ExampleYGDateTime
                     rewardService.SetTimerRewardData();
                     break;
             }
+        }
+        
+        private void OnClickResetSaveButton()
+        {
+            YandexGame.ResetSaveProgress();
+            YandexGame.SaveProgress();
+            coinCountText_Example.text = YandexGame.savesData.CoinCount.ToString();
+            addCoinsButton.gameObject.SetActive(true);
+            rewardService.InitializeTimerRewardReceived().Forget();
         }
     }
 }
