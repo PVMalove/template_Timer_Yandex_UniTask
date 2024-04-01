@@ -1,16 +1,17 @@
-﻿using TMPro;
+using Cysharp.Threading.Tasks;
+using TMPro;
 using UnityEngine;
 
 namespace ExampleYGDateTime
 {
     public class ExampleDateTime : MonoBehaviour
     {
-        [SerializeField] private TextMeshProUGUI dateTimeYandexText;
         [SerializeField] private GameObject dateTimeContent;
+        [SerializeField] private TextMeshProUGUI dateTimeYandexText;
 
         private DailyRewardService rewardService;
         private bool isActive;
-
+        
         private void Awake()
         {
 #if UNITY_EDITOR
@@ -21,28 +22,33 @@ namespace ExampleYGDateTime
             rewardService = new DailyRewardYandexService();
 #endif
         }
-
-        private void Start()
+        
+        private async void Start()
         {
-            rewardService.onCompletedGetDateTime += OnCompletedGetServerTime;
-            rewardService.GetDateTimeServerYandex().Forget();
+            await LoadDateTime();
+        }
+
+        private async UniTask LoadDateTime()
+        {
+            bool isTimeLoaded = await rewardService.CheckConnection();
+            if (isTimeLoaded)
+            {
+                rewardService.GetDateTimeServer();
+                isActive = true;
+                dateTimeContent.SetActive(true);
+            }
+            else
+            {
+                dateTimeYandexText.text = $"No internet connection...";
+                isActive = false;
+                dateTimeContent.SetActive(true);
+            }
         }
 
         private void FixedUpdate()
         {
             if (isActive)
-                dateTimeYandexText.text = $"UTC: {rewardService.DateTime}";
-        }
-
-        private void OnDisable()
-        {
-            rewardService.onCompletedGetDateTime -= OnCompletedGetServerTime;
-        }
-
-        private void OnCompletedGetServerTime()
-        {
-            dateTimeContent.SetActive(true);
-            isActive = true;
+                dateTimeYandexText.text = $"UTC: {rewardService.DateTimeNow}";
         }
     }
 }

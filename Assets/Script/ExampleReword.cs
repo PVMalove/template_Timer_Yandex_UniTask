@@ -1,19 +1,21 @@
-﻿using TMPro;
+using Cysharp.Threading.Tasks;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using YG;
 
 namespace ExampleYGDateTime
 {
-    public class ExampleReward : MonoBehaviour
+    public class ExampleReword : MonoBehaviour
     {
         [SerializeField] private GameObject rewardContainer;
         [SerializeField] private Button addCoinsButton;
         [SerializeField] private GameObject timerContent;
         [SerializeField] private TextMeshProUGUI timerText;
-        
+
         [SerializeField] private TextMeshProUGUI coinCountText_Example;
         [SerializeField] private Button resetSaveButton;
+
         private DailyRewardService rewardService;
         private bool isActiveTimer;
 
@@ -27,12 +29,15 @@ namespace ExampleYGDateTime
             rewardService = new DailyRewardYandexService();
 #endif
         }
-        
-        private void Start()
+
+        private async void Start()
         {
             coinCountText_Example.text = YandexGame.savesData.CoinCount.ToString();
-            rewardService.onCompletedInitTimer += OnCompletedInitializeReward;
-            rewardService.InitializeTimerRewardReceived().Forget();
+            await LoadDateTimeReward();
+        }
+
+        private void OnEnable()
+        {
             addCoinsButton.onClick.AddListener(AddCoinsWatchingAdsOnClick);
             resetSaveButton.onClick.AddListener(OnClickResetSaveButton);
             YandexGame.RewardVideoEvent += RewardedViewingAds;
@@ -44,12 +49,12 @@ namespace ExampleYGDateTime
 
             if (!timerContent.activeSelf)
             {
-                timerContent.SetActive(true); 
+                timerContent.SetActive(true);
                 Debug.Log($"[ExampleReward] !_timerContent.activeSelf - {timerContent.activeSelf}");
             }
 
             timerText.text = rewardService.TimeLeft;
-            
+
             if (!rewardService.CheckTimerRewardEnded()) return;
             Debug.Log($"[ExampleReward] CheckTimerRewardEnded -> {rewardService.CheckTimerRewardEnded()}");
 
@@ -61,56 +66,79 @@ namespace ExampleYGDateTime
 
         private void OnDisable()
         {
-            rewardService.onCompletedInitTimer -= OnCompletedInitializeReward;
             addCoinsButton.onClick.RemoveListener(AddCoinsWatchingAdsOnClick);
             resetSaveButton.onClick.RemoveListener(OnClickResetSaveButton);
             YandexGame.RewardVideoEvent -= RewardedViewingAds;
         }
 
-        private void OnCompletedInitializeReward()
+        private async UniTask LoadDateTimeReward()
         {
-            Debug.Log("[ExampleReward] -> OnCompletedInitializeReward");
+            bool isTimeLoaded = await rewardService.CheckConnection();
+            if (isTimeLoaded)
+            {
+                rewardService.InitializeTimerRewardReceived();
+                CompletedInitializeReward();
+            }
+            else
+            {
+                coinCountText_Example.text = "Error2";
+            }
+        }
+
+
+        private void CompletedInitializeReward()
+        {
             rewardContainer.SetActive(true);
             if (rewardService.IsActiveTimer)
             {
-                Debug.Log("[ExampleReward] -> _dailyRewardService.IsActiveTimer");
                 addCoinsButton.gameObject.SetActive(false);
                 timerContent.SetActive(true);
             }
             else
             {
-                Debug.Log("[ExampleReward] -> _dailyRewardService.IsActiveTimer = false");
                 addCoinsButton.gameObject.SetActive(true);
                 timerContent.SetActive(false);
             }
         }
-        
+
+
         private void AddCoinsWatchingAdsOnClick()
         {
             addCoinsButton.gameObject.SetActive(false);
             YandexGame.RewVideoShow(1);
         }
-        
+
         private async void RewardedViewingAds(int id)
         {
             switch (id)
             {
                 case 1:
-                    YandexGame.savesData.CoinCount += 100;
-                    coinCountText_Example.text = YandexGame.savesData.CoinCount.ToString();
-                    await rewardService.StartTimerRewardReceived();
-                    rewardService.SetTimerRewardData();
+                    bool isTimeLoaded = await rewardService.CheckConnection();
+
+                    if (isTimeLoaded)
+                    {
+                        rewardService.StartTimerRewardReceived();
+                        rewardService.SetTimerRewardData();
+                        YandexGame.savesData.CoinCount += 100;
+                        coinCountText_Example.text = YandexGame.savesData.CoinCount.ToString();
+                    }
+                    else
+                    {
+                        coinCountText_Example.text = "Error2";
+                    }
+
                     break;
             }
         }
-        
+
         private void OnClickResetSaveButton()
         {
             YandexGame.ResetSaveProgress();
             YandexGame.SaveProgress();
             coinCountText_Example.text = YandexGame.savesData.CoinCount.ToString();
             addCoinsButton.gameObject.SetActive(true);
-            rewardService.InitializeTimerRewardReceived().Forget();
+            rewardService.IsActiveTimer = false;
+            CompletedInitializeReward();
         }
     }
 }

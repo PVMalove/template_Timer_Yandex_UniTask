@@ -8,58 +8,59 @@ namespace ExampleYGDateTime
 {
     public class DailyRewardYandexService : DailyRewardService
     {
-        private bool isNetworkError;
-        private bool isHttpError;
-        private bool isLoaded;
-        private bool isCompleteLoaded;
-        private bool isLocalDataFounded;
+        private UnityWebRequest webRequest;
 
-        protected override async UniTask SendRequest()
+        public override async UniTask<bool> CheckConnection()
         {
             try
             {
-                using UnityWebRequest webRequest = UnityWebRequest.Head(Application.absoluteURL);
+                webRequest = UnityWebRequest.Head(Application.absoluteURL);
                 webRequest.SetRequestHeader("cache-control", "no-cache");
                 await webRequest.SendWebRequest();
-
+                Debug.Log($"[DailyRewardYandexService] =>  Server webRequest isDone -> {webRequest.isDone}");
                 switch (webRequest.result)
                 {
                     case UnityWebRequest.Result.ConnectionError:
-                        isNetworkError = true;
-                        isLoaded = true;
-                        Debug.Log($"[DailyRewardYandexService] => Network Error! -> {webRequest.error}");
-                        break;
+                        Debug.LogError($"[DailyRewardYandexService] =>  Network Error! -> {webRequest.error}");
+                        return false;
                     case UnityWebRequest.Result.DataProcessingError:
-                        isHttpError = true;
-                        isLoaded = true;
-                        Debug.Log($"[DailyRewardYandexService] => Data Processing Error! -> {webRequest.error}");
-                        break;
+                        Debug.LogError($"[DailyRewardYandexService] =>  Data Processing Error! -> {webRequest.error}");
+                        return false;
                     case UnityWebRequest.Result.ProtocolError:
-                        isHttpError = true;
-                        isLoaded = true;
-                        Debug.Log($"[DailyRewardYandexService] => Protocol Error! -> {webRequest.error}");
-                        break;
+                        Debug.LogError($"[DailyRewardYandexService] => Protocol Error! -> {webRequest.error}");
+                        return false;
                     case UnityWebRequest.Result.Success:
-                        string dateString = webRequest.GetResponseHeader("date");
-                        Debug.Log($"[DailyRewardYandexService] => Yandex server time -> {dateString}");
-                        DateTimeOffset date = DateTimeOffset.ParseExact(dateString, "ddd, dd MMM yyyy HH:mm:ss 'GMT'", 
-                            CultureInfo.InvariantCulture, 
-                            DateTimeStyles.AssumeUniversal);
-                        Debug.Log($"[DailyRewardYandexService] => Server time in date -> {date}");
-                        serverTime = (int)date.ToUnixTimeSeconds();
-                        Debug.Log($"[DailyRewardYandexService] => Server time in second -> {serverTime}");
-
-                        isCompleteLoaded = true;
-                        isLoaded = true;
-                        break;
+                        return true;
                 }
             }
             catch (Exception)
             {
-                isNetworkError = true;
-                isLoaded = true;
-                throw;
+                return false;
             }
+
+            return default;
+        }
+
+        protected override int GetServerTimeNow()
+        {
+            int serverTime;
+            switch (webRequest.result)
+            {
+                case UnityWebRequest.Result.Success:
+                    string dateString = webRequest.GetResponseHeader("date");
+                    Debug.Log($"[DailyRewardYandexService] => Yandex server time -> {dateString}");
+                    DateTimeOffset date = DateTimeOffset.ParseExact(dateString, "ddd, dd MMM yyyy HH:mm:ss 'GMT'",
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.AssumeUniversal);
+                    Debug.Log($"[DailyRewardYandexService] => Server time in date -> {date}");
+                    serverTime = (int)date.ToUnixTimeSeconds();
+                    Debug.Log($"[DailyRewardYandexService] => Server time in second -> {serverTime}");
+                    break;
+                default:
+                    throw new Exception($"[DailyRewardYandexService] => Unknown Error! -> {webRequest.error}");
+            }
+
+            return serverTime;
         }
     }
 }
