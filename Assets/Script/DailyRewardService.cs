@@ -8,7 +8,6 @@ namespace ExampleYGDateTime
     public abstract class DailyRewardService
     {
         //DataTime
-        private string dateTime;
         private int deltaDateTime;
 
         //Reward
@@ -17,26 +16,10 @@ namespace ExampleYGDateTime
         private double localTime;
         private int deltaTime;
         private bool isActiveTimer;
-        private string timeLeft;
         private bool isActiveTimeData;
 
-        public string DateTimeNow
-        {
-            get
-            {
-                UpdateDateTime();
-                return dateTime;
-            }
-        }
-
-        public string TimeLeft
-        {
-            get
-            {
-                UpdateTimeLeftTimer();
-                return timeLeft;
-            }
-        }
+        public string DateTimeNow => CalculateDateTime();
+        public string TimeLeft => CalculateTimeLeft();
 
         public bool IsActiveTimer
         {
@@ -61,14 +44,12 @@ namespace ExampleYGDateTime
                 localTime = Time.realtimeSinceStartupAsDouble;
                 deltaTime = (int)(serverTimeNow - localTime);
                 isActiveTimer = true;
-
-                Debug.Log($"[DailyRewardService] =>  Initialize timer -> {IsActiveTimer}");
             }
             else
             {
                 isActiveTimer = false;
-                Debug.Log($"[DailyRewardService] =>  Initialize timer -> {IsActiveTimer}");
             }
+            Debug.Log($"[DailyRewardService] =>  Initialize timer -> {IsActiveTimer}");
         }
 
         public void StartTimerRewardReceived()
@@ -84,13 +65,10 @@ namespace ExampleYGDateTime
         }
 
 
-        public bool CheckTimerRewardEnded()
-        {
-            return Time.realtimeSinceStartupAsDouble + deltaTime > timerTime;
-        }
+        public bool CheckTimerRewardEnded() => 
+            Time.realtimeSinceStartupAsDouble + deltaTime > timerTime;
 
         public abstract UniTask<bool> CheckConnection();
-
         protected abstract int GetServerTimeNow();
 
         public void SetTimerRewardData()
@@ -98,22 +76,22 @@ namespace ExampleYGDateTime
             YandexGame.savesData.lastReceiveCoinsTime = timerTime;
             YandexGame.savesData.isActiveTimer = isActiveTimer;
             YandexGame.SaveProgress();
-            Debug.Log($"[DailyRewardService] =>  Save timer reward data / isActiveTimer -> {YandexGame.savesData.isActiveTimer}");
+            Debug.Log($"[DailyRewardService] => Save timer reward data / isActiveTimer -> {YandexGame.savesData.isActiveTimer}");
         }
-
-        private void UpdateDateTime()
+        
+        private string CalculateDateTime()
         {
             double calculateTime = deltaDateTime + Time.realtimeSinceStartupAsDouble;
             DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds((int)calculateTime);
-            dateTime = dateTimeOffset.ToString("dd/MM/yyyy HH:mm:ss");
+            return dateTimeOffset.ToString("dd/MM/yyyy HH:mm:ss");
         }
 
-        private void UpdateTimeLeftTimer()
+        private string CalculateTimeLeft()
         {
             double calculateTimeLeft = timerTime - Time.realtimeSinceStartupAsDouble - deltaTime;
             int minutes = Mathf.FloorToInt((float)calculateTimeLeft / 60);
             int seconds = Mathf.FloorToInt((float)calculateTimeLeft % 60);
-            timeLeft = $"{minutes:00}:{seconds:00}";
+            return $"{minutes:00}:{seconds:00}";
         }
     }
 }

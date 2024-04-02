@@ -16,6 +16,8 @@ namespace ExampleYGDateTime
         [SerializeField] private TextMeshProUGUI coinCountText_Example;
         [SerializeField] private Button resetSaveButton;
 
+        [SerializeField] private GameObject warningPopup;
+        
         private DailyRewardService rewardService;
         private bool isActiveTimer;
 
@@ -41,6 +43,7 @@ namespace ExampleYGDateTime
             addCoinsButton.onClick.AddListener(AddCoinsWatchingAdsOnClick);
             resetSaveButton.onClick.AddListener(OnClickResetSaveButton);
             YandexGame.RewardVideoEvent += RewardedViewingAds;
+            YandexGame.ErrorVideoEvent += RewardedViewingAdsError;
         }
 
         private void FixedUpdate()
@@ -50,13 +53,11 @@ namespace ExampleYGDateTime
             if (!timerContent.activeSelf)
             {
                 timerContent.SetActive(true);
-                Debug.Log($"[ExampleReward] !_timerContent.activeSelf - {timerContent.activeSelf}");
             }
 
             timerText.text = rewardService.TimeLeft;
 
             if (!rewardService.CheckTimerRewardEnded()) return;
-            Debug.Log($"[ExampleReward] CheckTimerRewardEnded -> {rewardService.CheckTimerRewardEnded()}");
 
             addCoinsButton.gameObject.SetActive(true);
             timerContent.SetActive(false);
@@ -69,6 +70,7 @@ namespace ExampleYGDateTime
             addCoinsButton.onClick.RemoveListener(AddCoinsWatchingAdsOnClick);
             resetSaveButton.onClick.RemoveListener(OnClickResetSaveButton);
             YandexGame.RewardVideoEvent -= RewardedViewingAds;
+            YandexGame.ErrorVideoEvent -= RewardedViewingAdsError;
         }
 
         private async UniTask LoadDateTimeReward()
@@ -76,12 +78,13 @@ namespace ExampleYGDateTime
             bool isTimeLoaded = await rewardService.CheckConnection();
             if (isTimeLoaded)
             {
+                warningPopup.SetActive(false);
                 rewardService.InitializeTimerRewardReceived();
                 CompletedInitializeReward();
             }
             else
             {
-                coinCountText_Example.text = "Error2";
+                warningPopup.SetActive(true);
             }
         }
 
@@ -101,6 +104,14 @@ namespace ExampleYGDateTime
             }
         }
 
+        private async void RewardedViewingAdsError()
+        {
+            bool isTimeLoaded = await rewardService.CheckConnection();
+            if (!isTimeLoaded)
+            {
+                warningPopup.SetActive(true);
+            }
+        }
 
         private void AddCoinsWatchingAdsOnClick()
         {
@@ -118,13 +129,13 @@ namespace ExampleYGDateTime
                     if (isTimeLoaded)
                     {
                         rewardService.StartTimerRewardReceived();
-                        rewardService.SetTimerRewardData();
                         YandexGame.savesData.CoinCount += 100;
                         coinCountText_Example.text = YandexGame.savesData.CoinCount.ToString();
+                        rewardService.SetTimerRewardData();
                     }
                     else
                     {
-                        coinCountText_Example.text = "Error2";
+                        warningPopup.SetActive(true);
                     }
 
                     break;
